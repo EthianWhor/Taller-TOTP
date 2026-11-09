@@ -2,6 +2,7 @@ import type { Clock } from './clock.js';
 import type { AppConfig } from './config.js';
 import { AuthorizationStore } from './store/authorizationStore.js';
 import { RefreshTokenStore } from './store/refreshTokenStore.js';
+import { ReplayCache, StepUpTracker } from './store/replayCache.js';
 import { UserStore } from './store/users.js';
 import { TokenService } from './tokens/tokenService.js';
 
@@ -13,6 +14,8 @@ export interface AppContext {
   authorizations: AuthorizationStore;
   refreshTokens: RefreshTokenStore;
   tokens: TokenService;
+  replayCache: ReplayCache;
+  stepUps: StepUpTracker;
 }
 
 export function createContext(config: AppConfig, clock: Clock): AppContext {
@@ -32,5 +35,7 @@ export function createContext(config: AppConfig, clock: Clock): AppContext {
     authorizations: new AuthorizationStore(clock, config.authCodeTtl),
     refreshTokens: new RefreshTokenStore(clock, config.refreshTokenTtl),
     tokens: new TokenService(config, clock),
+    replayCache: new ReplayCache(clock, config.replayTtl),
+    stepUps: new StepUpTracker(clock),
   };
 }

@@ -3,8 +3,10 @@ import type { AppConfig } from './config.js';
 import { systemClock, type Clock } from './clock.js';
 import { createContext, type AppContext } from './context.js';
 import { apiRouter } from './routes/api.js';
+import { mfaRouter } from './routes/mfa.js';
 import { oauthRouter } from './routes/oauth.js';
 import { sessionRouter } from './routes/session.js';
+import { vaultRouter } from './routes/vault.js';
 
 export interface AppDeps {
   config: AppConfig;
@@ -37,6 +39,8 @@ export function createApp({ config, clock = systemClock }: AppDeps): Express & {
   app.use(oauthRouter(ctx));
   app.use(sessionRouter(ctx));
   app.use(apiRouter(ctx));
+  app.use(mfaRouter(ctx));
+  app.use(vaultRouter(ctx));
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'not_found' });
