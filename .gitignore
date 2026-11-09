@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+coverage/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+web-build/
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Variables de entorno (usar los .env.example como plantilla)
+.env
+.env.local
+.env.*.local
+
+# Sistema / editores
+.DS_Store
+*.log
+.vscode/
+.idea/
