@@ -1,14 +1,20 @@
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import type { AppConfig } from './config.js';
 import { systemClock, type Clock } from './clock.js';
+import { createContext, type AppContext } from './context.js';
+import { apiRouter } from './routes/api.js';
+import { oauthRouter } from './routes/oauth.js';
+import { sessionRouter } from './routes/session.js';
 
 export interface AppDeps {
   config: AppConfig;
   clock?: Clock;
 }
 
-export function createApp({ config, clock = systemClock }: AppDeps): Express {
+export function createApp({ config, clock = systemClock }: AppDeps): Express & { locals: { ctx: AppContext } } {
+  const ctx = createContext(config, clock);
   const app = express();
+  app.locals.ctx = ctx;
   app.disable('x-powered-by');
   app.set('trust proxy', false);
 
@@ -28,6 +34,10 @@ export function createApp({ config, clock = systemClock }: AppDeps): Express {
     res.json({ status: 'ok', time: new Date(clock()).toISOString() });
   });
 
+  app.use(oauthRouter(ctx));
+  app.use(sessionRouter(ctx));
+  app.use(apiRouter(ctx));
+
   app.use((_req, res) => {
     res.status(404).json({ error: 'not_found' });
   });
@@ -38,5 +48,5 @@ export function createApp({ config, clock = systemClock }: AppDeps): Express {
     res.status(500).json({ error: 'server_error' });
   });
 
-  return app;
+  return app as Express & { locals: { ctx: AppContext } };
 }
