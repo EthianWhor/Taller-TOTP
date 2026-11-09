@@ -2,6 +2,8 @@
 
 **Curso:** Desarrollo Móvil (React Native) — Universidad de La Sabana, Facultad de Ingeniería
 **Sesión 14:** Autenticación Móvil, Tokens y Seguridad de Recursos
+**Integrante:** Ethian Daniel White Ortiz
+**Plataforma de ejecución:** Expo Go (React Native)
 
 Arquitectura de seguridad móvil completa y **sin librerías "caja negra"**:
 
@@ -90,7 +92,7 @@ Para producción: `npm run build && npm start`.
 | `JWT_SECRET` | aleatorio por arranque | Secreto HS256 (≥ 32 caracteres). Obligatorio con `NODE_ENV=production`. Genera uno con `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`. |
 | `OAUTH_CLIENT_ID` | `unisabana-mobile` | Cliente público (no existe `client_secret`). |
 | `ALLOWED_REDIRECT_URIS` | `unisabana-auth://callback` | Redirect URIs permitidos (separados por coma, comparación exacta). |
-| `ALLOW_EXPO_DEV_REDIRECTS` | `true` fuera de producción | Admite `exp://<ip>:<puerto>/--/callback` para Expo Go. |
+| `ALLOW_EXPO_DEV_REDIRECTS` | `true` fuera de producción | Admite `exp://<ip>:<puerto>/--/callback`. **Necesario para Expo Go.** |
 | `ACCESS_TOKEN_TTL_SECONDS` | `300` | Vida del `access_token` (5 min). Bájalo a `30` para demostrar el Silent Refresh. |
 | `REFRESH_TOKEN_TTL_SECONDS` | `2592000` | Vida del `refresh_token` (30 días). |
 | `ELEVATED_TOKEN_TTL_SECONDS` | `600` | Vida del `elevated_token` (10 min). |
@@ -107,12 +109,16 @@ Pruebas: `npm test` (Vitest + Supertest, 68 casos con vectores de los RFC) y `np
 
 ## 4. Ejecutar la app (`/mobile-app`)
 
+La app se ejecuta con **Expo Go** (SDK 58). Instálalo desde App Store / Google Play.
+
 ```bash
 cd mobile-app
 npm install
 cp .env.example .env        # define EXPO_PUBLIC_API_URL
-npx expo start              # escanea el QR con Expo Go o pulsa a / i
+npx expo start              # escanea el QR de la terminal con Expo Go
 ```
+
+En Android abre Expo Go y usa *Scan QR code*; en iOS escanea el QR con la cámara del iPhone.
 
 `EXPO_PUBLIC_API_URL` según el dispositivo:
 
@@ -122,12 +128,14 @@ npx expo start              # escanea el QR con Expo Go o pulsa a / i
 | Emulador Android | `http://10.0.2.2:4000` |
 | Simulador iOS | `http://localhost:4000` |
 
-### Deep link / redirect URI
+### Deep link / redirect URI en Expo Go
 
-- **Development build** (`npx expo run:android` / `npx expo run:ios`): usa el esquema propio `unisabana-auth://callback` (definido en `app.json`).
-- **Expo Go:** Expo asigna `exp://<ip>:8081/--/callback`; el backend lo acepta solo con `ALLOW_EXPO_DEV_REDIRECTS=true`.
+Expo Go no puede registrar un esquema propio, así que el navegador regresa a la app por el deep link que asigna Expo:
+`exp://<IP-del-computador>:8081/--/callback`.
 
-La app calcula el redirect con `Linking.createURL('callback')`, así que no hay que cambiar código entre los dos modos.
+- La app lo calcula con `Linking.createURL('callback')`.
+- El backend lo acepta porque `ALLOW_EXPO_DEV_REDIRECTS=true` (valor por defecto fuera de producción). **No lo desactives** en `backend-auth/.env`.
+- El esquema propio `unisabana-auth://callback` ya está configurado en `app.json`. Se usaría automáticamente, sin cambiar código, si algún día se compila un development build.
 
 Pruebas: `npm test` (51 casos: TOTP, HMAC, Base32, PKCE, callback y la cola de Silent Refresh) y `npm run typecheck`.
 
@@ -139,7 +147,7 @@ Antes de empezar: backend corriendo y app abierta. En el computador, abre `http:
 
 | # | Prueba | Cómo demostrarla | Resultado esperado |
 |---|--------|------------------|--------------------|
-| 1 | **OAuth + PKCE con navegador del sistema** | En la app pulsa **Iniciar sesión**. Se abre ASWebAuthenticationSession / Custom Tabs; ingresa `estudiante@unisabana.edu.co` / `Sabana2026*`. | La app vuelve por deep link y muestra **Inicio**; el `refresh_token` queda en SecureStore (la tarjeta *Sesión* lo indica). |
+| 1 | **OAuth + PKCE con navegador del sistema** | En la app pulsa **Iniciar sesión**. Se abre ASWebAuthenticationSession / Custom Tabs; ingresa `estudiante@unisabana.edu.co` / `Sabana2026*`. | La app vuelve por el deep link `exp://…/--/callback` y muestra **Inicio**; el `refresh_token` queda en SecureStore (la tarjeta *Sesión* lo indica). |
 | 2 | **Paridad con Google Authenticator** | Escanea el QR de `/enroll` con Google Authenticator y con la app (**Autenticador → Agregar → Escanear QR**). En emulador, usa **Ingresar semilla** con `JBSWY3DPEHPK3PXP`. | Ambas muestran los mismos 6 dígitos al mismo tiempo. |
 | 3 | **Cálculo offline (Modo Avión)** | Activa el Modo Avión y abre **Autenticador** (también está disponible desde Bienvenida, sin sesión). Espera a que la barra llegue a 0. | El código se regenera sin errores ni peticiones de red. |
 | 4 | **Step-Up & Bóveda** | Desde Inicio pulsa **Abrir Bóveda Crítica**. La API responde 403 y se abre el modal 2FA. Escribe el código (o tócalo desde *Usar el código de mi autenticador local*). | La bóveda solo se abre tras verificar el TOTP; muestra la cuenta regresiva del `elevated_token`. |
